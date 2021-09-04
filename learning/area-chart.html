@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Scatter Plot Chart</title>
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      html {
+         background-color:  #EFECEA;
+         overflow-x: hidden;
+         overflow-y: auto;
+      }
+
+      text {
+         font-size: 1.5em;
+         font-family: sans-serif;
+         fill: #635F5D;
+         user-select: none;
+      }
+
+      .area-path {
+         fill: steelblue;
+         stroke-linejoin: round;
+      }
+
+      .mean-line {
+         fill: none;
+         stroke: #C0C0BB;
+         stroke-width: 0.2em;
+      }
+
+      svg .title {
+         font-size: 1.5em;
+      }
+
+      .tick line {
+         width: 1px;
+         stroke: #C0C0BB;
+      }
+   </style>
+
+   <script src="../lib/d3.min.js"></script>
+   <script defer>
+      let dataset
+
+      async function visualize() {
+         console.log('Visualizing...')
+
+         // setup
+         const container = document.querySelector('.d3')
+         container.innerHTML = '<svg><svg>'
+
+         const svg = d3.select('.d3 svg')
+            .attr('width', +getComputedStyle(container).width.replace('px', ''))
+            .attr('height', innerHeight * 75 / 100)
+
+         if(!dataset) dataset = await d3.csv('../dataset/monthly-temp.csv')
+
+         // constants
+         const padding = {
+            top: 50,
+            right: 50,
+            bottom: 50,
+            left: 80
+         }
+
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+
+         // value
+         // data: Source,Date,Mean
+         xValue = d => new Date(d.Date)
+         yValue = d => +d.Mean
+
+         // scaling
+         const xScale = d3.scaleTime()
+            .domain(d3.extent(dataset, xValue))
+            .range([0, WIDTH])
+            
+         const yScale = d3.scaleLinear()
+            .domain(d3.extent(dataset, yValue))
+            .range([HEIGHT, 0])
+            .nice()
+
+
+         // chart
+         const chart = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top}) scale(1)`)
+
+         // axes
+         const xAxis = d3.axisBottom(xScale)
+            .tickSize(-HEIGHT)
+            .tickPadding(15)
+
+         const xAxisGroup = chart.append('g')
+            .attr('transform', `translate(0, ${HEIGHT})`)
+            .call(xAxis)
+         
+         xAxisGroup.select('.domain').remove()
+         xAxisGroup.append('text')
+            .attr('class', 'label')
+            .attr('x', WIDTH / 2)
+            .attr('y', 45)
+            .text('Date')
+
+         const yAxis = d3.axisLeft(yScale)
+            .tickSize(-WIDTH)
+         
+         const yAxisGroup = chart.append('g')
+            .attr('transform', `translate(0, 0)`)
+            .call(yAxis)
+         
+         yAxisGroup.selectAll('.domain').remove()
+         yAxisGroup.append('text')
+            .attr('class', 'label')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -HEIGHT / 2)
+            .attr('y', -50)
+            .text('Temperature(C)')
+
+         const title = chart.append('text')
+            .attr('class', 'title')
+            .text('2000-2017 Global Temperature')
+            .attr('y', '-20')
+
+         // mean line
+         const meanLine = chart.append('line')
+            .attr('class', 'mean-line')
+            .attr('x1', 0)
+            .attr('y1', yScale(d3.mean(dataset, yValue)))
+            .attr('x2', WIDTH)
+            .attr('y2', yScale(d3.mean(dataset, yValue)))
+
+         // area
+         const areaGenerator = d3.area()
+            .x(d => xScale(xValue(d)))
+            .y0(HEIGHT)
+            .y1(d => yScale(yValue(d)))
+            .curve(d3.curveBasis)
+
+         chart.append('path')
+            .attr('class', 'area-path')
+            .attr('d', areaGenerator(dataset))
+
+         console.log('Visualized')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+
+
+</head>
+<body class="container pt-6 px-2">
+   <h1 class="title has-text-centered">Area Chart</h1>
+   <div class=" container is-fullhd d3">
+
+   </div>
+   <p class="ml-5 mb-5">
+      This chart is using data from
+      <a href="https://datahub.io/core/global-temp">Datahub Monthly Global Temperature Time Series dataset</a>
+   </p>
+</body>
+</html>

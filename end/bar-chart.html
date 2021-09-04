@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Bar Chart</title>
+
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      html {
+         overflow: auto;
+         overflow-x: hidden;
+      }
+      .description {
+         font-size: 0.8em;
+      }
+
+      text {
+         font-size: 1.3em;
+         font-family: sans-serif;
+         fill: #635F5D;
+      }
+
+      .bar {
+         fill:  #42A5B3;
+      }
+
+      .mean-line {
+         stroke: #E6842A;
+         stroke-width: 0.2em;
+      }
+
+      .tick line {
+         stroke: #C0C0BB;
+      }
+
+      .bar:hover {
+         fill: skyblue;
+      }
+
+      #tooltip {
+         position: absolute;
+         z-index: 100;
+         padding: 1em 1.5em;
+         transition: 0.3s display;
+      }
+
+      #tooltip p {
+         font-weight: bold;
+      }
+
+   </style>
+
+   <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js" defer></script>
+   <script src="../lib/d3.min.js" defer></script>
+   <script>
+      let data
+      async function visualize() {
+         if(!data) await loadData()
+         
+         console.log('Visualizing...')
+
+         // setup
+         const root = d3.select('.chart').node()
+         root.innerHTML = '<svg></svg>'
+
+         const svg = d3.select('.chart svg')
+            .attr('width', +getComputedStyle(root).width.replace('px', ''))
+            .attr('height', innerHeight * 65 / 100)
+         
+         const dataset = data.data
+         const padding = {
+            top: 20,
+            right: 20,
+            bottom: 50,
+            left: 80
+         }
+         
+         const chart = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top}) scale(1)`)
+
+         // value accessor
+         const xValue = d => new Date(d[0])
+         const yValue = d => +d[1]
+
+         // constants
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+         const MAX_VALUE = d3.max(dataset, yValue)
+         const MEAN_VALUE = d3.mean(dataset, yValue).toFixed(1)
+         const BAR_WIDTH = (WIDTH / dataset.length)
+         
+         // scales
+         const xScale = d3.scaleTime()
+            .domain( d3.extent(dataset, xValue) )
+            .range([0, WIDTH])
+
+         const yScale = d3.scaleLinear()
+            .domain([0, MAX_VALUE])
+            .range([HEIGHT, 0])
+
+         // axes
+         const xAxis = d3.axisBottom(xScale)
+
+         const xAxisGroup = chart.append('g')
+            .attr('id', 'x-axis')
+            .attr('transform', `translate(0, ${HEIGHT})`)
+            .call(xAxis)
+
+         xAxisGroup.selectAll('.domain').remove()
+
+         const yAxis = d3.axisLeft(yScale)
+            .tickSize(-WIDTH)
+         
+         const yAxisGroup = chart.append('g')
+            .attr('id', 'y-axis')
+            .call(yAxis)
+
+         yAxisGroup.selectAll('.domain').remove()
+         yAxisGroup.append('text')
+            .attr('class', 'label')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -HEIGHT / 4)
+            .attr('y', -50)
+            .text('Gross Domestic Product')
+
+
+         // mean line
+         const meanLine = chart.append('line')
+            .attr('class', 'mean-line')
+            .attr('x1', 0)
+            .attr('y1', yScale(MEAN_VALUE) )
+            .attr('x2', WIDTH)
+            .attr('y2', yScale(MEAN_VALUE) )
+            .on('mouseover', (e) => {
+               d3.select('#tooltip')
+                  .style('display', 'block')
+                  .style('top', `${e.y}px`)
+                  .style('left', `${e.x}px`)
+                  .select('p')
+                     .node().innerHTML = `$${MEAN_VALUE} Billion`
+            })
+            .on('mouseleave', (e) => {
+               d3.select('#tooltip')
+                  .style('display', 'none')
+            })
+            
+            
+
+         // bar
+         const bars = chart.selectAll('rect')
+            .data(dataset)
+            .enter()
+            .append('rect')
+            .attr('class', 'bar')
+            .attr('data-date', d => d[0])
+            .attr('data-gdp', d => d[1].toString())
+            .attr('x', d => xScale(xValue(d)))
+            .attr('y', d => HEIGHT - yScale(MAX_VALUE - yValue(d)))
+            .attr('width', BAR_WIDTH)
+            .attr('height', d => yScale(MAX_VALUE - yValue(d)))
+            .on('mouseover', (e) => {
+               const data = e.target.dataset
+
+               d3.select('#tooltip')
+                  .attr('data-date', data.date)
+                  .style('display', 'block')
+                  .style('top', `${e.y}px`)
+                  .style('left', `${e.x}px`)
+                  .select('p')
+                     .node().innerHTML = `$${data.gdp} Billion<br/>${format(data.date)}`
+            })
+            .on('mouseleave', (e) => {
+               d3.select('#tooltip')
+                  .style('display', 'none')
+            })
+
+         console.log('Visualized')
+      }
+
+      function format(date) {
+         const utc = new Date(date)
+            .toUTCString()
+            .split(' ')
+
+         utc.splice(4)
+         return utc.join(' ')
+      }
+
+
+      async function loadData() {
+         const res = await fetch('https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json')
+         const json = await res.json()
+
+         data = json
+         document.title = data.name
+         document.querySelector('.title').innerText = data.name
+         document.querySelector('.description').innerText = data.description
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+</head>
+<body class="container pt-6 px-2">
+   <h1 id="title" class="title has-text-centered">Bar Chart</h1>
+   <div class=" container is-fullhd chart">
+
+   </div>
+   <p class="description ml-5 mb-5">
+   </p>
+
+   <div id="tooltip" class="box has-text-centered">
+      <p>-</p>
+   </div>
+</body>
+</html>

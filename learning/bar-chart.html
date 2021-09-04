@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Bar Chart</title>
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      rect {
+         fill: steelblue;
+      }
+
+      text {
+         font-size: 1.2em;
+         font-family: sans-serif;
+         user-select: none;
+      }
+
+      rect:hover {
+         fill: sandybrown;
+      }
+   </style>
+
+   <script src="../lib/d3.min.js"></script>
+   <script defer>
+      let dataset
+
+      async function visualize() {
+         console.log('Visualizing...')
+
+         // setup
+         const container = document.querySelector('.d3')
+         container.innerHTML = '<svg><svg>'
+
+         const svg = d3.select('.d3 svg')
+            .attr('width', +getComputedStyle(container).width.replace('px', ''))
+            .attr('height', innerHeight * 75 / 100)
+
+         if(!dataset) dataset = await d3.csv('../dataset/populations.csv')
+
+         // constants
+         const padding = {
+            top: 30,
+            right: 30,
+            bottom: 30,
+            left: 100
+         }
+
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+
+         // scaling
+         const xScale = d3.scaleLinear()
+            .domain([0, d3.max(dataset, d => +d.population)])
+            .range([0, WIDTH])
+
+         const yScale = d3.scaleBand()
+            .domain(dataset.map(d => d.country))
+            .range([0, HEIGHT])
+            .padding(0.1)
+
+
+         // chart
+         const chart = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top}) scale(1)`)
+
+         // bars
+         const bars = chart.selectAll('rect')
+            .data(dataset)
+            .enter()
+            .append('rect')
+            .attr('y', d => yScale(d.country))
+            .attr('width', d => xScale(+d.population))
+            .attr('height', d => yScale.bandwidth())
+
+         // axes
+         const xAxis = d3.axisBottom(xScale)
+         const yAxis = d3.axisLeft(yScale)
+
+         chart.append('g')
+            .attr('transform', `translate(0, ${HEIGHT})`)
+            .call(xAxis)
+
+         chart.append('g')
+            .attr('transform', `translate(-10, 0)`)
+            .call(yAxis)
+
+         console.log('Visualized')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+
+
+</head>
+<body class="container pt-6 px-2">
+   <h1 class="title has-text-centered">Bar Chart</h1>
+   <div class=" container is-fullhd d3">
+
+   </div>
+   <p class="ml-5 mb-5">
+      This chart is using data from
+      <a href="https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)">List of countries by population (United Nations) 1 July 2018</a>
+   </p>
+</body>
+</html>

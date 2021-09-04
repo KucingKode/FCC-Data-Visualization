@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Stylized Bar Chart</title>
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      html {
+         background-color:  #EFECEA;
+         overflow-x: hidden;
+         overflow-y: auto;
+      }
+
+      text {
+         font-size: 1.5em;
+         font-family: sans-serif;
+         fill: #635F5D;
+         user-select: none;
+      }
+
+      rect {
+         fill: steelblue;
+      }
+
+      rect:hover {
+         fill: sandybrown;
+      }
+
+      svg .title {
+         font-size: 1.5em;
+      }
+
+      .tick line {
+         width: 1px;
+         stroke: #C0C0BB;
+      }
+   </style>
+
+   <script src="../lib/d3.min.js"></script>
+   <script defer>
+      let dataset
+
+      async function visualize() {
+         console.log('Visualizing...')
+
+         // setup
+         const container = document.querySelector('.d3')
+         container.innerHTML = '<svg><svg>'
+
+         const svg = d3.select('.d3 svg')
+            .attr('width', +getComputedStyle(container).width.replace('px', ''))
+            .attr('height', innerHeight * 75 / 100)
+
+         if(!dataset) dataset = await d3.csv('../dataset/populations.csv')
+
+         // constants
+         const padding = {
+            top: 50,
+            right: 30,
+            bottom: 50,
+            left: 130
+         }
+
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+
+         // scaling
+         const xScale = d3.scaleLinear()
+            .domain([0, d3.max(dataset, d => +d.population)])
+            .range([0, WIDTH])
+
+         const yScale = d3.scaleBand()
+            .domain(dataset.map(d => d.country))
+            .range([0, HEIGHT])
+            .padding(0.1)
+
+
+         // chart
+         const chart = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top}) scale(1)`)
+
+         // axes
+         const xAxisFormat = (number) => {
+            return d3.format('.3s')(number)
+               .replace('G', 'M')
+         }
+
+         const xAxis = d3.axisBottom(xScale)
+            .tickSize(-HEIGHT)
+            .tickFormat(xAxisFormat)
+
+         const xAxisGroup = chart.append('g')
+            .attr('transform', `translate(0, ${HEIGHT})`)
+            .call(xAxis)
+         
+         xAxisGroup.select('.domain').remove()
+         xAxisGroup.append('text')
+            .attr('class', 'label')
+            .attr('x', WIDTH / 2)
+            .attr('y', 38)
+            .text('Populations')
+
+         const yAxis = d3.axisLeft(yScale)
+         
+         chart.append('g')
+            .attr('transform', `translate(0, 0)`)
+            .call(yAxis)
+            .selectAll('.domain, .tick line')
+               .remove()
+         
+
+         const title = chart.append('text')
+            .attr('class', 'title')
+            .text('Top 10 Country Populations')
+            .attr('y', '-20')
+
+         // bars
+         const bars = chart.selectAll('rect')
+            .data(dataset)
+            .enter()
+            .append('rect')
+            .attr('y', d => yScale(d.country))
+            .attr('width', d => xScale(+d.population))
+            .attr('height', d => yScale.bandwidth())
+
+         console.log('Visualized')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+
+
+</head>
+<body class="container pt-6 px-2">
+   <h1 class="title has-text-centered">Stylized Bar Chart</h1>
+   <div class=" container is-fullhd d3">
+
+   </div>
+   <p class="ml-5 mb-5">
+      This chart is using data from
+      <a href="https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)">List of countries by population (United Nations) 1 July 2018</a>
+   </p>
+</body>
+</html>

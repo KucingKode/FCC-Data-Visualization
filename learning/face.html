@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>SVG Face</title>
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <script src="../lib/d3.min.js"></script>
+
+   <script defer>
+      
+      function visualize() {
+         console.log('Visualizing...')
+
+         // setup
+         const container = document.querySelector('.d3')
+         container.innerHTML = '<svg><svg>'
+
+         const svg = d3.select('.d3 svg')
+            .attr('width', +getComputedStyle(container).width.replace('px', ''))
+            .attr('height', innerHeight * 75 / 100)
+
+         // constants
+         const WIDTH = +svg.attr('width')
+         const HEIGHT = +svg.attr('height')
+
+         const FACE_FILL = '#ffe500'
+         const FACE_STROKE = 'black'
+         const FACE_STROKE_WIDTH = 10
+
+         const EYEBROW_WIDTH = 70
+         const EYEBROW_HEIGHT = 15
+         const EYEBROW_OFFSET_Y = HEIGHT / 4
+         
+         const EYE_DIST = 70
+         const EYE_RADIUS = 40
+         const EYE_OFFSET_Y = HEIGHT / 10
+
+         const MOUTH_OUTER_RADIUS = 90
+         const MOUTH_INNER_RADIUS = 100
+
+         // face
+         const faceGroup = svg.append('g')
+            .attr('transform', `translate(${WIDTH / 2}, ${HEIGHT / 2}) scale(1)`)
+
+         const face = faceGroup.append('circle')
+            .attr('r', HEIGHT / 2 - 2 * FACE_STROKE_WIDTH)
+            .attr('fill', FACE_FILL)
+            .attr('stroke', FACE_STROKE)
+            .attr('stroke-width', FACE_STROKE_WIDTH)
+
+         // eyebrows
+         const t = d3.transition()
+            .duration(750)
+            .ease(d3.easeLinear)
+
+         const eyebrowsGroup = faceGroup.append('g')
+            .attr('transform', `translate(0, -${EYEBROW_OFFSET_Y})`)
+
+         const leftEyebrows = eyebrowsGroup.append('rect')
+            .attr('width', EYEBROW_WIDTH)
+            .attr('height', EYEBROW_HEIGHT)
+            .attr('x', -EYE_DIST - EYEBROW_WIDTH / 2)
+            .transition(t)
+               .attr('y', -30)
+            .transition(t)
+               .attr('y', 0)
+
+         const rightEyebrows = eyebrowsGroup.append('rect')
+            .attr('width', EYEBROW_WIDTH)
+            .attr('height', EYEBROW_HEIGHT)
+            .attr('x', EYE_DIST - EYEBROW_WIDTH / 2)
+            .transition(t)
+               .attr('y', -30)
+            .transition(t)
+               .attr('y', 0)
+
+         // eyes
+         const eyesGroup = faceGroup.append('g')
+            .attr('transform', `translate(0, -${EYE_OFFSET_Y})`)
+
+         const leftEye = eyesGroup.append('circle')
+            .attr('r', EYE_RADIUS)
+            .attr('cx', -EYE_DIST)
+
+         const rightEye = eyesGroup.append('circle')
+            .attr('r', EYE_RADIUS)
+            .attr('cx', EYE_DIST)
+
+         // mouth
+         const mouthArc = d3.arc()
+            .innerRadius(MOUTH_INNER_RADIUS)
+            .outerRadius(MOUTH_OUTER_RADIUS)
+            .startAngle(Math.PI / 2)
+            .endAngle(Math.PI * 3 / 2)
+               
+
+         const mouth = faceGroup.append('g')
+            .attr('transform', `translate(0, ${HEIGHT / 10})`)
+            .append('path')
+            .attr('d', mouthArc)
+            
+         console.log('Visualized')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+
+
+</head>
+<body class="container pt-6 px-2">
+   <h1 class="title has-text-centered">SVG Face</h1>
+   <div class=" container is-fullhd d3">
+
+   </div>
+</body>
+</html>

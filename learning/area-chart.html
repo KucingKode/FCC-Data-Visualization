@@ -25,12 +25,6 @@
          stroke-linejoin: round;
       }
 
-      .mean-line {
-         fill: none;
-         stroke: #C0C0BB;
-         stroke-width: 0.2em;
-      }
-
       svg .title {
          font-size: 1.5em;
       }
@@ -80,7 +74,7 @@
             .range([0, WIDTH])
             
          const yScale = d3.scaleLinear()
-            .domain(d3.extent(dataset, yValue))
+            .domain([0, d3.max(dataset, yValue)])
             .range([HEIGHT, 0])
             .nice()
 
@@ -124,14 +118,6 @@
             .attr('class', 'title')
             .text('2000-2017 Global Temperature')
             .attr('y', '-20')
-
-         // mean line
-         const meanLine = chart.append('line')
-            .attr('class', 'mean-line')
-            .attr('x1', 0)
-            .attr('y1', yScale(d3.mean(dataset, yValue)))
-            .attr('x2', WIDTH)
-            .attr('y2', yScale(d3.mean(dataset, yValue)))
 
          // area
          const areaGenerator = d3.area()

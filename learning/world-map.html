@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>World Map</title>
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      html {
+         overflow: hidden;
+      }
+      
+      .sphere {
+         fill: rgb(19, 28, 143);
+      }
+
+      .land {
+         fill: rgb(5, 82, 52);
+         stroke: rgb(202, 202, 202);
+         stroke-width: 0.03em;
+      }
+
+      .land:hover {
+         fill: rgb(13, 161, 105);
+      }
+   </style>
+
+   <script src="../lib/d3.min.js"></script>
+   <script src="../lib/topojson.min.js"></script>
+   <script>
+      let atlas, dataset
+      async function visualize() {
+         if(!atlas || !dataset) {
+            const res = await Promise.all([
+               d3.json('https://unpkg.com/world-atlas@1.1.4/world/110m.json'),
+               d3.tsv('https://unpkg.com/world-atlas@1.1.4/world/110m.tsv')
+            ])
+
+            atlas = res[0]
+            dataset = res[1]
+         }
+
+         console.log('Visualizing...')
+
+         // setup
+         const container = document.querySelector('.d3')
+         container.innerHTML = '<svg><svg>'
+
+         const svg = d3.select('.d3 svg')
+            .attr('width', +getComputedStyle(container).width.replace('px', ''))
+            .attr('height', innerHeight * 75 / 100)
+
+         // constants
+         const padding = {
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0
+         }
+
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+
+         const group = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top})`)
+
+         // country data
+         const countries = topojson.feature(atlas, atlas.objects.countries)
+         const countryNames = []
+         dataset.forEach(d => {
+            countryNames[d.iso_n3] = d.name
+         })
+         
+         // map generator
+         const projection = d3.geoNaturalEarth1()
+         const pathGenerator = d3.geoPath().projection(projection)
+
+         // sphere
+         const sphere = group.append('path')
+            .attr('class', 'sphere')
+            .attr('d', pathGenerator({ type: 'Sphere' }))
+
+         // paths
+         const paths = group.selectAll('path')
+            .data(countries.features)
+            .enter()
+            .append('path')
+               .attr('class', 'land')
+               .attr('d', pathGenerator)
+               .append('title')
+                  .text(d => countryNames[d.id])
+
+         console.log(dataset)
+         console.log('Visualized')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+</head>
+<body class="container pt-6 px-2">
+   <h1 class="title has-text-centered">World Map</h1>
+   <div class=" container is-fullhd d3">
+
+   </div>
+   <p class="ml-5 mb-5">
+      This world map was generated using TopoJSON library
+   </p>
+</body>
+</html>

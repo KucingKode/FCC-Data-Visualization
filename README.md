@@ -20,6 +20,7 @@ ___
 - [Scatter Plot](https://kucingkode.github.io/FCC-Data-Visualization/learning/scatter-plot.html)
 - [Line Chart](https://kucingkode.github.io/FCC-Data-Visualization/learning/line-chart.html)
 - [Area Chart](https://kucingkode.github.io/FCC-Data-Visualization/learning/area-chart.html)
+- [Fruit Bowl](https://kucingkode.github.io/FCC-Data-Visualization/learning/fruit-bowl.html)
 
 ## End Projects
 

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Tree Visualization</title>
+
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      path.branch {
+         fill: none;
+         stroke: #2594fc;
+      }
+
+      text {
+         font-family: sans-serif;
+         text-shadow: 
+            -1px -1px 3px white,
+            -1px 1px 3px white,
+            1px -1px 3px white,
+            1px 1px 3px white;
+      }
+
+      text.branch {
+         text-anchor: middle;
+      }
+
+      .group * {
+         user-select: none;
+      }
+   </style>
+
+   <script src="../lib/d3.min.js"></script>
+   <script>
+      let dataset
+      async function visualize() {
+         if(!dataset) dataset = await d3.json('../dataset/country-hierarchy.json')
+
+         console.log('Visualizing...')
+
+         // setup
+         const container = document.querySelector('.d3')
+         container.innerHTML = '<svg><svg>'
+
+         const svg = d3.select('.d3 svg')
+            .attr('width', +getComputedStyle(container).width.replace('px', ''))
+            .attr('height', innerHeight * 75 / 100)
+
+         // constants
+         const padding = {
+            top: 0,
+            right: 100,
+            bottom: 50,
+            left: 65
+         }
+
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+
+         const zoomG = svg.append('g')
+
+         zoomG.call(d3.zoom().on('zoom', (e) => {
+            zoomG.attr('transform', e.transform)
+         }))
+
+         const group = zoomG.append('g')
+            .attr('class', 'group')
+            .attr('transform', `translate(${padding.left}, ${padding.top})`)
+
+         // tree
+         const tree = d3.tree()
+            .size([HEIGHT, WIDTH])
+
+         const root = d3.hierarchy(dataset)
+         const descendants = root.descendants()
+         const links = tree(root).links()
+         const linkPathGenerator = d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x)
+
+         group.selectAll('path')
+            .data(links)
+            .enter()
+            .append('path')
+               .attr('class', 'branch')
+               .attr('d', linkPathGenerator)
+
+         group.selectAll('text')
+            .data(descendants)
+            .enter()
+            .append('text')
+               .attr('class', d => d.children ? 'branch' : 'leaf')
+               .attr('font-size', d => `${1.6 - d.depth / 2}em`)
+               .attr('x', d => d.y)
+               .attr('y', d => d.x)
+               .attr('dy', '0.32em')
+               .text(d => d.data.data.id)
+
+         console.log('Visualized')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+</head>
+<body class="container pt-6 px-2">
+   <h1 class="title has-text-centered">Tree Visualization</h1>
+   <div class=" container is-fullhd d3">
+
+   </div>
+</body>
+</html>

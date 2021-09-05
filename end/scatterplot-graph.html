@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Bar Chart</title>
+
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      html {
+         overflow: hidden;
+      }
+
+      .description {
+         font-size: 0.8em;
+      }
+
+      text {
+         font-size: 1.3em;
+         font-family: sans-serif;
+         fill: #635F5D;
+      }
+
+      .tick line {
+         stroke: #C0C0BB;
+      }
+
+      .dot {
+         fill: steelblue;
+         stroke: black;
+         opacity: 0.6;
+      }
+
+      .dot.no-doping {
+         fill: #F4A460;
+      }
+
+      #tooltip {
+         position: absolute;
+         display: none;
+         z-index: 100;
+         transition: 0.3s;
+      }
+
+      #legend text {
+         font-size: 0.8em;
+      }
+
+   </style>
+
+   <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js" defer></script>
+   <script src="../lib/d3.min.js" defer></script>
+   <script>
+      let dataset = []
+      async function visualize() {
+         if(dataset.length  == 0) {
+            (await d3.json('https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json'))
+               .forEach(data => {
+                  const parsedTime = data.Time.split(':')
+                  data.Time = new Date(1970, 0, 1, 0, parsedTime[0], parsedTime[1])
+
+                  dataset.push(data)
+               })
+         }
+         
+         console.log('Visualizing...')
+
+         // setup
+         const root = d3.select('.chart').node()
+         root.innerHTML = '<svg></svg>'
+
+         const svg = d3.select('.chart svg')
+            .attr('width', +getComputedStyle(root).width.replace('px', ''))
+            .attr('height', innerHeight * 70 / 100)
+
+         const padding = {
+            top: 20,
+            right: 20,
+            bottom: 50,
+            left: 90
+         }
+         
+         const chart = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top}) scale(1)`)
+
+         // value accessor
+         const xValue = d => +d.Year
+         const yValue = d => +d.Seconds
+
+         // constants
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+         const MEAN_VALUE = d3.mean(dataset, yValue).toFixed(1)
+         const BAR_WIDTH = (WIDTH / dataset.length)
+         
+         // scales
+         const xScale = d3.scaleLinear()
+            .domain( d3.extent(dataset, xValue) )
+            .range([0, WIDTH])
+
+         const yScale = d3.scaleLinear()
+            .domain( d3.extent(dataset, yValue) )
+            .range([0, HEIGHT])
+
+         // axes
+         const xAxis = d3.axisBottom(xScale)
+            .tickSize(-HEIGHT)
+            .tickFormat(d3.format(''))
+            .tickPadding(15)
+
+         const xAxisGroup = chart.append('g')
+            .attr('id', 'x-axis')
+            .attr('transform', `translate(0, ${HEIGHT})`)
+            .call(xAxis)
+
+         xAxisGroup.selectAll('.domain').remove()
+
+         const yAxis = d3.axisLeft(yScale)
+            .tickSize(-WIDTH)
+            .tickFormat(formatTime)
+            .tickPadding(15)
+         
+         const yAxisGroup = chart.append('g')
+            .attr('id', 'y-axis')
+            .call(yAxis)
+
+         yAxisGroup.selectAll('.domain').remove()
+         yAxisGroup.append('text')
+            .attr('class', 'label')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -HEIGHT / 4)
+            .attr('y', -60)
+            .text('Time in Minutes')
+
+         // legend
+         const legend = chart.append('g')
+            .attr('id', 'legend')
+            .attr('transform', `translate(${WIDTH - 200}, 10)`)
+
+         const LEGEND_BOX_SIZE = 10
+         const LEGEND_BOX_MARGIN = 8
+
+
+         legend.append('rect')
+            .attr('fill', 'steelblue')
+            .attr('stroke', 'black')
+            .attr('width', LEGEND_BOX_SIZE)
+            .attr('height', LEGEND_BOX_SIZE)
+
+         legend.append('text')
+            .attr('x', LEGEND_BOX_SIZE + LEGEND_BOX_MARGIN)
+            .attr('y', LEGEND_BOX_SIZE)
+            .text('Riders With doping allegations')
+
+         legend.append('rect')
+            .attr('fill', '#F4A460')
+            .attr('stroke', 'black')
+            .attr('y', LEGEND_BOX_SIZE + LEGEND_BOX_MARGIN)
+            .attr('width', LEGEND_BOX_SIZE)
+            .attr('height', LEGEND_BOX_SIZE)
+
+         legend.append('text')
+            .attr('x', LEGEND_BOX_SIZE + LEGEND_BOX_MARGIN)
+            .attr('y', LEGEND_BOX_SIZE * 2 + LEGEND_BOX_MARGIN)
+            .text('No doping allegations')
+            
+
+         // circles
+         chart.selectAll('circle')
+            .data(dataset)
+            .enter()
+            .append('circle')
+            .attr('class', d => d.Doping.length < 1 ? 'no-doping dot' : 'dot')
+            .attr('data-xvalue', d => xValue(d))
+            .attr('data-yvalue', d => d.Time.toISOString())
+            .attr('data-tooltip', d => generateTooltip(d))
+            .attr('cx', d => xScale(xValue(d)))
+            .attr('cy', d => yScale(yValue(d)))
+            .attr('r', '0.5em')
+            .on('mouseover', e => {
+               d3.select('#tooltip')
+                  .attr('data-year', e.target.dataset.xvalue)
+                  .style('top', `${e.y - 50}px`)
+                  .style('left', `${e.x - 50}px`)
+                  .style('display', 'block')
+                  .select('p')
+                     .html(e.target.dataset.tooltip)
+            })
+            .on('mouseleave', e => {
+               d3.select('#tooltip')
+                  .style('display', 'none')
+            })
+
+         console.log('Visualized')
+      }
+
+      function generateTooltip(data) {
+         return `<strong>${data.Name}: ${data.Nationality}</strong><br/>` +
+         `<strong>Year:</strong> ${data.Year}, ` +
+         `<strong>Time:</strong/> ${formatTime(+data.Seconds)}<br/>` +
+         `<br/>${data.Doping}`
+      }
+
+      function formatTime(time) {
+         let min = (~~(time / 60)).toString(), sec = (time % 60).toString()
+         
+         min.length < 2 ? min = `0${min}` : ''
+         sec.length < 2 ? sec = `0${sec}` : ''
+
+         return `${min}:${sec}`
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+</head>
+<body class="container pt-6 px-2">
+   <h1 id="title" class="title has-text-centered">Doping in Professional Bicycle Racing</h1>
+   <p class="subtitle has-text-centered">35 Fastest times up Alpe d'Huez</p>
+   <div class=" container is-fullhd chart">
+
+   </div>
+   <p class="description ml-5 mb-5">
+   </p>
+
+   <div id="tooltip" class="box">
+      <p>-</p>
+   </div>
+</body>
+</html>

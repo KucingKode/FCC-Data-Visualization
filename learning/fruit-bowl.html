@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Fruit Bowl</title>
+
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      text {
+         text-anchor: middle;
+      }
+   </style>
+
+   <script src="../lib/d3.min.js"></script>
+   <script>
+      const dataset = []
+      let id = 0
+      
+      function visualize() {
+         console.log('Visualizing...')
+
+         // setup
+         const root = document.querySelector('.d3')
+         root.innerHTML = '<svg><svg>'
+
+         const svg = d3.select('.d3 svg')
+            .attr('width', +getComputedStyle(root).width.replace('px', ''))
+            .attr('height', innerHeight * 35 / 100)
+
+         // constants
+         const WIDTH = +svg.attr('width')
+         const HEIGHT = +svg.attr('height')
+         const FRUIT_SIZE = 60
+         
+         const sizes = {
+            apple: FRUIT_SIZE / 2,
+            lemon: FRUIT_SIZE / 3
+         }
+
+         const fills = {
+            apple: 'red',
+            lemon: 'yellow'
+         }
+
+         const container = svg.append('g')
+            .attr('transform', `translate(0, ${HEIGHT / 2})`)
+
+         // bowl
+         const bowl = container.append('rect')
+            .attr('fill', 'brown')
+            // .attr('x', -WIDTH / 2)
+            .attr('y', -HEIGHT / 2)
+            .attr('rx', 20)
+            .attr('width', WIDTH)
+            .attr('height', HEIGHT)
+
+         // renderer
+         function renderNormal() {
+            const fruits = dataset
+
+            const circles = container.selectAll('circle')
+               .data(fruits, d => d.id)
+               
+            circles
+               .enter()
+                  .append('circle')
+                  .attr('cx', (_, i) => i * (FRUIT_SIZE + 10))
+                  .attr('cy', 0)
+                  .attr('r', 0)
+                  .merge(circles)
+                     .transition()
+                        .duration(300)
+                        .attr('cx', (_, i) => i * (FRUIT_SIZE + 10) + FRUIT_SIZE)
+                        .attr('r', d => sizes[d.type])
+                        .attr('fill', d => d.type === 'apple' ? 'red' : 'yellow')
+               
+            circles.exit()
+               .transition()
+                  .duration(300)
+                  .attr('r', 0)
+                  .remove()
+
+         }
+
+         function renderNested() {
+            const fruits = dataset
+
+            const groups = container.selectAll('g')
+               .data(fruits, d => d.id)
+
+            const groupsEnter = groups.enter().append('g')
+            groupsEnter
+               .attr('transform', (_, i) => `translate(${i * (FRUIT_SIZE + 10) + FRUIT_SIZE}, 0)`)
+               .merge(groups)
+                  .transition()
+                     .delay(300)
+                     .duration(300)
+                     .attr('transform', (_, i) => `translate(${i * (FRUIT_SIZE + 10) + FRUIT_SIZE}, 0)`)
+
+            const groupsExit = groups.exit()
+            groupsExit
+               .transition()
+                  .duration(400)
+                  .remove()
+
+            // circle
+            groupsEnter.append('circle')
+               .merge(groups.select('circle'))
+                  .transition()
+                     .delay(300)
+                     .duration(300)
+                     .attr('class', d => `id-${d.id}`)
+                     .attr('r', d => sizes[d.type])
+                     .attr('fill', d => fills[d.type])
+
+            groupsExit.select(d => document.querySelector(`.id-${d.id}`))
+               .transition()
+                  .duration(300)
+                  .attr('r', 0)
+
+            // text
+            groupsEnter.append('text')
+               .merge(groups.select('text'))
+               .attr('y', FRUIT_SIZE / 2 + 20)
+               .attr('fill', 'white')
+               .transition()
+                  .delay(300)
+                  .text(d => d.type)
+         }
+
+         const render = renderNested
+
+         window.add = (type) => {
+            const i = d3.select('input').node().value
+
+            if(i.length > 0) {
+               dataset.splice(+i, 0, { type, id })
+            } else {
+               dataset.push({ type, id })
+            }
+
+
+            id++
+            render()
+         }
+
+         window.remove = () => {
+            const i = d3.select('input').node().value
+
+            if(i.length > 0) {
+               dataset.splice(+i, 1)
+            } else {
+               dataset.pop()
+            }
+            
+            render()
+         }
+            
+
+         render()
+         console.log('Visualized')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+</head>
+<body class="container pt-6 px-2">
+   <h1 class="title has-text-centered">Fruit Bowl</h1>
+   <div class=" container is-fullhd d3">
+
+   </div>
+   <input class="input" type="text" placeholder="index, last index is default" value="">
+   <button class="button has-background-success has-text-white" onclick="add('lemon')">Create Lemon</button>
+   <button class="button has-background-success has-text-white" onclick="add('apple')">Create Apple</button>
+   <button class="button has-background-danger has-text-white" onclick="remove()">Remove</button>
+</body>
+</html>

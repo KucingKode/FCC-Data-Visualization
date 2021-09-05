@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Heat Map</title>
+
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      .cell:hover {
+         stroke: black;
+         stroke-width: 0.1em;
+      }
+
+      text {
+         font-size: 1.3em;
+      }
+
+      #legend text {
+         font-size: 1em;
+         text-anchor: middle;
+      }
+
+      #tooltip {
+         display: none;
+         position: absolute;
+         background-color: black;
+         opacity: 0.8;
+         padding: 1em;
+         border-radius: 5px;
+      }
+
+      #tooltip p {
+         text-align: center;
+         color: white;
+      }
+   </style>
+
+   <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js" defer></script>
+   <script src="../lib/d3.min.js" defer></script>
+   <script>
+      let dataset
+      async function visualize() {
+         if(!dataset) dataset = await d3.json('https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json')
+         
+         console.log('Visualizing...')
+
+         // setup
+         const root = d3.select('.chart').node()
+         root.innerHTML = '<svg></svg>'
+
+         const svg = d3.select('.chart svg')
+            .attr('width', +getComputedStyle(root).width.replace('px', ''))
+            .attr('height', innerHeight * 75 / 100)
+         
+         const padding = {
+            top: 20,
+            right: 20,
+            bottom: 150,
+            left: 90
+         }
+         
+         const chart = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top}) scale(1)`)
+
+         // constants
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+
+         const months = [
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December',
+         ]
+         const colors = ['#D73027', '#F46D43', '#FDAE61', '#FFFFBF', '#E0F3F8', '#FFFFBF', '#4575B4', '#74ADD1'].reverse()
+
+         // values
+         const data = dataset.monthlyVariance
+         const xValue = d => d.year
+         const yValue = d => months[d.month - 1]
+         const colorValue = d => d.variance
+
+         // scales
+         const xScale = d3.scaleLinear()
+            .domain( d3.extent(data, xValue) )
+            .range([0, WIDTH])
+
+         const yScale = d3.scaleBand()
+            .domain(months)
+            .range([0, HEIGHT])
+
+         const scaleColor = d3.scaleQuantize()
+            .domain( d3.extent(data, colorValue) )
+            .range(colors)
+
+         // axes
+         const xAxis = d3.axisBottom(xScale)
+            .tickFormat(d3.format(''))
+
+         const xAxisGroup = chart.append('g')
+            .attr('id', 'x-axis')
+            .attr('transform', `translate(0, ${HEIGHT})`)
+            .call(xAxis)
+            
+            const yAxis = d3.axisLeft(yScale)
+            
+            const yAxisGroup = chart.append('g')
+            .attr('id', 'y-axis')
+            .attr('transform', `translate(-1, 0)`)
+            .call(yAxis)
+
+         // description
+         d3.select('#description')
+            .text(`${d3.min(data, xValue)} - ${d3.max(data, xValue)}: Base Temperature ${dataset.baseTemperature}℃`)
+
+         // legend
+         const LEGEND_RECT_WIDTH = (WIDTH / 2) / colors.length
+         const LEGEND_COLOR_DIST = (d3.max(data, colorValue) - d3.min(data, colorValue)) / colors.length
+         
+         const legend = chart.append('g')
+            .attr('id', 'legend')
+            .attr('transform', `translate(0, ${HEIGHT + 70})`)
+
+         const legendEnter = legend.selectAll('rect')
+            .data(colors)
+            .enter()
+         
+         legendEnter.append('rect')
+            .attr('width', LEGEND_RECT_WIDTH)
+            .attr('height', 20)
+            .attr('fill', d => d)
+            .attr('stroke', 'black')
+            .attr('x', (_, i) => LEGEND_RECT_WIDTH * i)
+            .attr('y', -20)
+
+         legendEnter.append('text')
+            .text((_, i) => (d3.min(data, colorValue) + LEGEND_COLOR_DIST * i).toFixed(1))
+            .attr('x', (_, i) => LEGEND_RECT_WIDTH * i + LEGEND_RECT_WIDTH / 2)
+            .attr('y', 20)
+
+         // rects
+         const rects = chart.selectAll('rect')
+            .data(data)
+            .enter()
+            .append('rect')
+               .attr('class', 'cell')
+               .attr('data-month', d => d.month - 1)
+               .attr('data-year', d => d.year)
+               .attr('data-temp', d => d.variance)
+               .attr('x', d => xScale(xValue(d)))
+               .attr('y', d => yScale(yValue(d)))
+               .attr('width', WIDTH / (data.length / 12))
+               .attr('height', HEIGHT / 12)
+               .attr('fill', d => scaleColor(colorValue(d)))
+               .on('mouseover', e => {
+                  const attr = e.target.dataset
+
+                  d3.select('#tooltip')
+                  .attr('data-year', attr.year)
+                  .style('top', `${e.y - 100}px`)
+                  .style('left', `${e.x}px`)
+                  .style('display', 'block')
+                  .select('p')
+                     .html(
+                        `${attr.year} - ${months[attr.month]}<br/>` +
+                        `${(+dataset.baseTemperature - attr.temp).toPrecision(2)}℃<br/>` +
+                        `${(+attr.temp).toPrecision(2)}℃`
+                     )
+               })
+               .on('mouseleave', () => {
+                  d3.select('#tooltip').style('display', 'none')
+               })
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+</head>
+<body class="container pt-6 px-2">
+   <h1 id="title" class="title has-text-centered">Monthly Land Surface Temperature</h1>
+   <h1 id="description" class="subtitle has-text-centered">...</h1>
+   <div class=" container is-fullhd chart">
+
+   </div>
+
+   <div id="tooltip">
+      <p>-</p>
+   </div>
+</body>
+</html>

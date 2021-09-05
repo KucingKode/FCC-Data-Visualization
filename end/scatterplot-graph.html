@@ -91,8 +91,6 @@
          // constants
          const WIDTH = +svg.attr('width') - padding.left - padding.right
          const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
-         const MEAN_VALUE = d3.mean(dataset, yValue).toFixed(1)
-         const BAR_WIDTH = (WIDTH / dataset.length)
          
          // scales
          const xScale = d3.scaleLinear()

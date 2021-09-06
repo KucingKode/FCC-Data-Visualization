@@ -30,6 +30,7 @@ ___
 - [Scatterplot Graph](https://kucingkode.github.io/FCC-Data-Visualization/end/scatterplot-graph.html)
 - [Heat Map](https://kucingkode.github.io/FCC-Data-Visualization/end/heat-map.html)
 - [Choropleth Map](https://kucingkode.github.io/FCC-Data-Visualization/end/choropleth-map.html)
+- [Treemap Diagram](https://kucingkode.github.io/FCC-Data-Visualization/end/treemap-diagram.html)
 
 ## Dataset Source
 

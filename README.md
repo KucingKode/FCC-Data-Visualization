@@ -21,10 +21,15 @@ ___
 - [Line Chart](https://kucingkode.github.io/FCC-Data-Visualization/learning/line-chart.html)
 - [Area Chart](https://kucingkode.github.io/FCC-Data-Visualization/learning/area-chart.html)
 - [Fruit Bowl](https://kucingkode.github.io/FCC-Data-Visualization/learning/fruit-bowl.html)
+- [World Map](https://kucingkode.github.io/FCC-Data-Visualization/learning/world-map.html)
+- [Tree Visualization](https://kucingkode.github.io/FCC-Data-Visualization/learning/tree-visualization.html)
 
 ## End Projects
 
 - [Bar Chart](https://kucingkode.github.io/FCC-Data-Visualization/end/bar-chart.html)
+- [Scatterplot Graph](https://kucingkode.github.io/FCC-Data-Visualization/end/scatterplot-graph.html)
+- [Heat Map](https://kucingkode.github.io/FCC-Data-Visualization/end/heat-map.html)
+- [Choropleth Map](https://kucingkode.github.io/FCC-Data-Visualization/end/choropleth-map.html)
 
 ## Dataset Source
 
@@ -36,3 +41,6 @@ ___
 
 - monthly-temp.csv  
 <https://datahub.io/core/global-temp/>
+
+- country-hierarchy.json  
+<https://github.com/curran/data/tree/gh-pages/un/placeHierarchy/>

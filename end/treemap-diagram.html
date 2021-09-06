@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Treemap Diagram</title>
+   <link rel="stylesheet" href="../lib/bulma.min.css">
+   <style>
+      text {
+         font-size: 0.5em;
+         font-family: sans-serif;
+         pointer-events: none;
+      }
+
+      #tooltip {
+         display: none;
+         position: absolute;
+      }
+   </style>
+
+   <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js" defer></script>
+   <script src="../lib/d3.min.js" defer></script>
+   <script>
+      let dataset
+      async function visualize() {
+         if(!dataset) {
+            dataset = await d3.json('https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/video-game-sales-data.json')
+         }
+
+         console.log('Visualizing...')
+
+         // setup
+         const root = d3.select('.chart').node()
+         root.innerHTML = '<svg></svg>'
+
+         const svg = d3.select('.chart svg')
+            .attr('width', +getComputedStyle(root).width.replace('px', ''))
+            .attr('height', innerHeight * 180 / 100)
+         
+         const padding = {
+            top: 0,
+            right: 0,
+            bottom: 150,
+            left: 0
+         }
+         
+         const diagram = svg.append('g')
+            .attr('transform', `translate(${padding.left}, ${padding.top}) scale(1)`)
+
+         // constants
+         const WIDTH = +svg.attr('width') - padding.left - padding.right
+         const HEIGHT = +svg.attr('height') - padding.top - padding.bottom
+         
+         // scales
+         const colorScale = d3.scaleOrdinal().range(
+            d3.schemeCategory10.map(color => d3.interpolateRgb(color, '#fff')(0.2))
+         )
+
+         // tree
+         const treeRoot = d3.hierarchy(dataset, d => d.children).sum(d => d.value)
+         const _tree = d3.treemap()
+            .size([WIDTH, HEIGHT])
+            .paddingOuter(5)
+
+         const tree = _tree(treeRoot)
+
+         // legend
+         const LEGEND_ITEM_SIZE = 13
+         const LEGEND_ITEM_PADDING = 5
+         const LEGEND_ITEM_DIST = 100
+
+         let categories = tree.leaves()
+            .map(n => n.data.category)
+            .filter((n, i, self) => self.indexOf(n) === i)
+
+         const legend = svg.append('g')
+            .attr('id', 'legend')
+            .attr('transform', `translate(10, ${HEIGHT + 30})`)
+         
+         const legendEl = legend.selectAll('g')
+            .data(categories)
+            .enter()
+            .append('g')
+
+         legendEl.append('rect')
+            .attr('class', 'legend-item')
+            .attr('x', (_, i) => ~~(i / 4) * LEGEND_ITEM_DIST)
+            .attr('y', (_, i) => i % 4 * (LEGEND_ITEM_SIZE + LEGEND_ITEM_PADDING))
+            .attr('fill', d => colorScale(d))
+            .attr('stroke', 'black')
+            .attr('width', LEGEND_ITEM_SIZE)
+            .attr('height', LEGEND_ITEM_SIZE)
+
+         legendEl.append('text')
+            .text(d => d)
+            .style('font-size', LEGEND_ITEM_SIZE)
+            .attr('x', (_, i) => (~~(i / 4) * LEGEND_ITEM_DIST) + LEGEND_ITEM_SIZE * 2)
+            .attr('y', (_, i) => (i % 4 * (LEGEND_ITEM_SIZE + LEGEND_ITEM_PADDING)) + LEGEND_ITEM_SIZE / 3 * 2)
+            
+
+         
+         // tiles
+         const tiles = diagram.selectAll('rect')
+            .data(tree.leaves())
+            .enter()
+            
+         tiles.append('rect')
+            .attr('class', 'tile')
+            .attr('data-name', d => d.data.name)
+            .attr('data-value', d => d.data.value)
+            .attr('data-category', d => d.data.category)
+            .attr('x', d => d.x0)
+            .attr('y', d => d.y0)
+            .attr('fill', d => colorScale(d.data.category))
+            .attr('stroke', 'white')
+            .attr('stroke-width', 1)
+            .attr('width', d => d.x1 - d.x0)
+            .attr('height', d => d.y1 - d.y0)
+            .on('mousemove', e => {
+               const attr = e.target.dataset
+
+               d3.select('#tooltip')
+                  .attr('data-value', attr.value)
+                  .style('top', `${e.pageY}px`)
+                  .style('left', `${e.pageX + 10}px`)
+                  .style('display', 'block')
+                  .select('p')
+                     .html(
+                        `<strong>Name</strong/>: ${attr.name}<br/>` +
+                        `<strong>Category</strong/>: ${attr.category}<br/>` +
+                        `<strong>Value</strong/>: ${attr.value}`
+                     )
+            })
+            .on('mouseleave', e => {
+               d3.select('#tooltip')
+                  .style('display', 'none')
+            })
+
+         tiles.append('g')
+            .attr('transform', d => `translate(${d.x0 + 5}, ${d.y0 + 12})`)
+            .append('text')
+               .html(d => wrap(d.data.name, d.x1 - d.x0))
+
+         console.log('Visualized')
+      }
+
+      function wrap(str, width) {
+         str = str
+            .replace(/([\-\/])/g, ' $1 ')
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+
+         let result = []
+         str.split(' ').forEach(word => {
+            (
+               result[result.length - 1] &&
+               result[result.length - 1].length + word.length < ~~(width / 4)
+            ) ?
+               result[result.length - 1] += word + ' ' :
+               result.push(word + ' ')
+         })
+
+         return result.reduce((resultStr, str, i) => {
+            resultStr += `<tspan x="0" y="${i * 10}">${str}</tspan>`
+            return resultStr
+         }, '')
+      }
+
+      window.onload = visualize
+      window.onresize = visualize
+   </script>
+</head>
+<body class="container pt-6 px-2">
+   <h1 id="title" class="title has-text-centered">Video Game Sales</h1>
+   <p id="description" class="subtitle has-text-centered">Top 100 Most Sold Video Games Grouped by Platform</p>
+   <div class=" container is-fullhd chart">
+
+   </div>
+   <p class="description ml-5 mb-5">
+   </p>
+
+   <div id="tooltip" class="box">
+      <p>-</p>
+   </div>
+</body>
+</html>
